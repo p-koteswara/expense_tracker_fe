@@ -15,9 +15,27 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+interface Expense {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  category_name: string;
+  category_emoji: string;
+}
+
+interface Budget {
+  id: number;
+  category_id: number;
+  category_name: string;
+  category_emoji: string;
+  limit_amount: number;
+  amount_spent: number;
+}
+
 export default function Dashboard() {
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [budgets, setBudgets] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [stats, setStats] = useState({
     totalSpent: 0,
     remainingBudget: 0,
@@ -30,17 +48,16 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const [expensesRes, budgetsRes] = await Promise.all([
-        axiosInstance.get('/expenses?limit=5'),
-        axiosInstance.get('/budgets'),
+        axiosInstance.get<Expense[]>('/expenses?limit=5'),
+        axiosInstance.get<Budget[]>('/budgets'),
       ]);
 
       setExpenses(expensesRes.data);
       setBudgets(budgetsRes.data);
 
       // Calculate stats
-      const totalSpent = expensesRes.data.reduce((acc: number, curr: any) => acc + curr.amount, 0);
-      const totalBudget = budgetsRes.data.reduce((acc: number, curr: any) => acc + curr.limit, 0);
-      const spentAcrossAll = budgetsRes.data.reduce((acc: number, curr: any) => acc + (curr.amount_spent || 0), 0);
+      const totalBudget = budgetsRes.data.reduce((acc, curr) => acc + (curr.limit_amount || 0), 0);
+      const spentAcrossAll = budgetsRes.data.reduce((acc, curr) => acc + (curr.amount_spent || 0), 0);
       
       setStats({
         totalSpent: spentAcrossAll,
@@ -128,7 +145,7 @@ export default function Dashboard() {
                   key={budget.id}
                   category={budget.category_name}
                   emoji={budget.category_emoji}
-                  limit={budget.limit}
+                  limit={budget.limit_amount}
                   spent={budget.amount_spent || 0}
                 />
               ))

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import axiosInstance from '@/api/axios';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
@@ -23,8 +24,12 @@ export default function LoginPage() {
       const response = await axiosInstance.post('/auth/login', { email, password });
       const { access_token, user } = response.data;
       login(access_token, user);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Invalid email or password');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.detail || 'Invalid email or password');
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -103,7 +108,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/register" className="text-accent-green font-semibold hover:underline">
                 Create Account
               </Link>

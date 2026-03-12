@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import axiosInstance from '@/api/axios';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
@@ -23,8 +24,12 @@ export default function RegisterPage() {
     try {
       await axiosInstance.post('/auth/register', { name, email, password });
       router.push('/login');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Try again.');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.detail || 'Registration failed. Try again.');
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
