@@ -73,7 +73,7 @@ export default function ExpensesPage() {
 
   const handleEdit = (id: number) => {
     const expense = expenses.find(e => e.id === id);
-    setEditingExpense(expense);
+    setEditingExpense(expense || null);
     setIsModalOpen(true);
   };
 
