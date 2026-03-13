@@ -10,11 +10,20 @@ interface Category {
   emoji: string;
 }
 
+interface Expense {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  category_id: number;
+  note?: string;
+}
+
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
-  initialData?: any;
+  initialData?: Expense | null;
 }
 
 export default function AddExpenseModal({ isOpen, onClose, onSave, initialData }: AddExpenseModalProps) {

@@ -4,8 +4,14 @@ import { useState, useEffect } from 'react';
 import axiosInstance from '@/api/axios';
 import { Plus, Trash2, X, Check, Smile } from 'lucide-react';
 
+interface Category {
+  id: number;
+  name: string;
+  emoji: string;
+}
+
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
   

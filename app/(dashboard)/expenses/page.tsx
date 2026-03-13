@@ -13,13 +13,30 @@ import {
   Download
 } from 'lucide-react';
 
+interface Expense {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  category_name: string;
+  category_emoji: string;
+  category_id: number;
+  note?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  emoji: string;
+}
+
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
