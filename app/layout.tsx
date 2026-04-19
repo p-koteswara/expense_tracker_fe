@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Serif_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import ChatBubble from "@/components/ChatBubble";
 
 const dmSerifDisplay = DM_Serif_Display({
   subsets: ["latin"],
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body className={`${dmSerifDisplay.variable} ${dmSans.variable} font-sans antialiased`}>
         <AuthProvider>
           {children}
+          <ChatBubble />
         </AuthProvider>
       </body>
     </html>
