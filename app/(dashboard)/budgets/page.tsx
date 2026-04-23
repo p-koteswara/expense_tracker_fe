@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import axiosInstance from '@/api/axios';
 import BudgetCard from '@/components/BudgetCard';
-import { Plus, Edit2, X, Check } from 'lucide-react';
+import { Plus, Edit2, X, Check, Trash2 } from 'lucide-react';
 
 interface Budget {
   id: number;
@@ -26,11 +26,13 @@ export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Form state
   const [selectedCategory, setSelectedCategory] = useState('');
   const [limit, setLimit] = useState('');
+  const [editingLimit, setEditingLimit] = useState('');
 
   const getCurrentMonthYear = () => {
     const now = new Date();
@@ -76,6 +78,37 @@ export default function BudgetsPage() {
     }
   };
 
+  const handleUpdateBudget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBudget) return;
+    try {
+      await axiosInstance.put(`/budgets/${editingBudget.id}`, {
+        limit_amount: parseFloat(editingLimit),
+      });
+      setEditingBudget(null);
+      setEditingLimit('');
+      fetchData();
+    } catch (error) {
+      console.error('Failed to update budget', error);
+    }
+  };
+
+  const handleDeleteBudget = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this budget?')) return;
+    try {
+      await axiosInstance.delete(`/budgets/${id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete budget', error);
+    }
+  };
+
+  const handleEditClick = (budget: Budget) => {
+    setEditingBudget(budget);
+    setEditingLimit(budget.limit_amount.toString());
+    setIsAdding(false);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -84,7 +117,10 @@ export default function BudgetsPage() {
           <p className="text-muted-foreground mt-1">Set monthly limits for your spending categories.</p>
         </div>
         <button
-          onClick={() => setIsAdding(!isAdding)}
+          onClick={() => {
+            setIsAdding(!isAdding);
+            setEditingBudget(null);
+          }}
           className="btn-primary flex items-center justify-center space-x-2 py-3 px-6 shadow-lg shadow-accent-green/20"
         >
           {isAdding ? <X size={20} /> : <Plus size={20} />}
@@ -132,6 +168,37 @@ export default function BudgetsPage() {
         </div>
       )}
 
+      {editingBudget && (
+        <div className="card p-6 border-2 border-accent-green/20 bg-accent-green/5 animate-in slide-in-from-top duration-300">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-xl font-bold font-serif flex items-center">
+              Edit Budget: <span className="ml-2 text-accent-green">{editingBudget.category_emoji} {editingBudget.category_name}</span>
+            </h3>
+            <button onClick={() => setEditingBudget(null)} className="text-muted-foreground hover:text-foreground">
+              <X size={20} />
+            </button>
+          </div>
+          <form onSubmit={handleUpdateBudget} className="flex flex-col md:flex-row items-end gap-6">
+            <div className="flex-1 w-full">
+              <label className="block text-sm font-bold mb-2 text-foreground uppercase tracking-wider">Monthly Limit ($)</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                placeholder="0.00"
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-green/20 focus:border-accent-green transition-all"
+                value={editingLimit}
+                onChange={(e) => setEditingLimit(e.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn-primary py-3 px-8 flex items-center space-x-2 shadow-md">
+              <Check size={20} />
+              <span className="font-bold">Update Budget</span>
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {loading ? (
           [1, 2, 3].map(i => <div key={i} className="h-48 bg-border rounded-2xl animate-pulse"></div>)
@@ -144,9 +211,20 @@ export default function BudgetsPage() {
                 limit={budget.limit_amount}
                 spent={budget.amount_spent || 0}
               />
-              <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm border border-border rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-accent-green shadow-sm">
-                <Edit2 size={16} />
-              </button>
+              <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => handleEditClick(budget)}
+                  className="p-2 bg-white/80 backdrop-blur-sm border border-border rounded-lg hover:text-accent-green shadow-sm"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button 
+                  onClick={() => handleDeleteBudget(budget.id)}
+                  className="p-2 bg-white/80 backdrop-blur-sm border border-border rounded-lg hover:text-accent-red shadow-sm"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))
         ) : (
