@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import axiosInstance from '@/api/axios';
 import { Plus, Trash2, X, Check, Smile } from 'lucide-react';
 
@@ -53,8 +54,9 @@ export default function CategoriesPage() {
       try {
         await axiosInstance.delete(`/categories/${id}`);
         setCategories(categories.filter(c => c.id !== id));
-      } catch (error: any) {
-        alert(error.response?.data?.detail || 'Failed to delete category. It might be in use.');
+      } catch (error: unknown) {
+        const detail = axios.isAxiosError(error) ? error.response?.data?.detail : null;
+        alert(detail ?? 'Failed to delete category. It might be in use.');
       }
     }
   };

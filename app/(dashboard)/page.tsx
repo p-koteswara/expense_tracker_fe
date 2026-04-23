@@ -33,6 +33,11 @@ interface Budget {
   amount_spent: number;
 }
 
+interface ExpenseSummary {
+  total_spent: number;
+  transaction_count: number;
+}
+
 export default function Dashboard() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -47,9 +52,10 @@ export default function Dashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [expensesRes, budgetsRes] = await Promise.all([
+      const [expensesRes, budgetsRes, summaryRes] = await Promise.all([
         axiosInstance.get<Expense[]>('/expenses?limit=5'),
         axiosInstance.get<Budget[]>('/budgets'),
+        axiosInstance.get<ExpenseSummary>('/expenses/summary'),
       ]);
 
       setExpenses(expensesRes.data);
@@ -57,12 +63,12 @@ export default function Dashboard() {
 
       // Calculate stats
       const totalBudget = budgetsRes.data.reduce((acc, curr) => acc + (curr.limit_amount || 0), 0);
-      const spentAcrossAll = budgetsRes.data.reduce((acc, curr) => acc + (curr.amount_spent || 0), 0);
+      const spentAcrossAll = summaryRes.data.total_spent || 0;
       
       setStats({
         totalSpent: spentAcrossAll,
         remainingBudget: Math.max(0, totalBudget - spentAcrossAll),
-        transactionCount: expensesRes.data.length, // This is just for the current list, backend should provide real count
+        transactionCount: summaryRes.data.transaction_count || 0,
       });
     } catch (error) {
       console.error('Failed to fetch dashboard data', error);

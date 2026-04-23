@@ -5,15 +5,37 @@ import axiosInstance from '@/api/axios';
 import BudgetCard from '@/components/BudgetCard';
 import { Plus, Edit2, X, Check } from 'lucide-react';
 
+interface Budget {
+  id: number;
+  category_id: number;
+  month: number;
+  year: number;
+  limit_amount: number;
+  amount_spent: number;
+  category_name: string;
+  category_emoji: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  emoji: string;
+}
+
 export default function BudgetsPage() {
-  const [budgets, setBudgets] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
   
   // Form state
   const [selectedCategory, setSelectedCategory] = useState('');
   const [limit, setLimit] = useState('');
+
+  const getCurrentMonthYear = () => {
+    const now = new Date();
+    return { month: now.getMonth() + 1, year: now.getFullYear() };
+  };
 
   const fetchData = async () => {
     try {
@@ -38,9 +60,12 @@ export default function BudgetsPage() {
   const handleAddBudget = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const { month, year } = getCurrentMonthYear();
       await axiosInstance.post('/budgets', {
         category_id: parseInt(selectedCategory),
-        limit: parseFloat(limit),
+        month,
+        year,
+        limit_amount: parseFloat(limit),
       });
       setIsAdding(false);
       setSelectedCategory('');
@@ -116,7 +141,7 @@ export default function BudgetsPage() {
               <BudgetCard
                 category={budget.category_name}
                 emoji={budget.category_emoji}
-                limit={budget.limit}
+                limit={budget.limit_amount}
                 spent={budget.amount_spent || 0}
               />
               <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm border border-border rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-accent-green shadow-sm">
