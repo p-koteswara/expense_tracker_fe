@@ -38,15 +38,31 @@ export default function ExpensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 10;
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      const params: any = {
+        page: page,
+        size: pageSize,
+      };
+      
+      if (searchTerm) params.search = searchTerm;
+      if (selectedCategory) params.category_id = selectedCategory;
+
       const [expensesRes, categoriesRes] = await Promise.all([
-        axiosInstance.get('/expenses'),
+        axiosInstance.get('/expenses', { params }),
         axiosInstance.get('/categories'),
       ]);
-      setExpenses(expensesRes.data);
+      
+      setExpenses(expensesRes.data.items);
+      setTotalPages(expensesRes.data.pages);
+      setTotalItems(expensesRes.data.total);
       setCategories(categoriesRes.data);
     } catch (error) {
       console.error('Failed to fetch expenses', error);
@@ -57,14 +73,25 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page, selectedCategory]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (page !== 1) {
+        setPage(1);
+      } else {
+        fetchData();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       try {
         await axiosInstance.delete(`/expenses/${id}`);
-        // Optimistic UI update
-        setExpenses(expenses.filter(e => e.id !== id));
+        fetchData();
       } catch (error) {
         console.error('Failed to delete expense', error);
       }
@@ -76,12 +103,6 @@ export default function ExpensesPage() {
     setEditingExpense(expense || null);
     setIsModalOpen(true);
   };
-
-  const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === '' || expense.category_id.toString() === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   return (
     <div className="space-y-8">
@@ -129,7 +150,10 @@ export default function ExpensesPage() {
             <select
               className="w-full pl-10 pr-8 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-green/20 transition-all appearance-none text-sm font-medium"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">All Categories</option>
               {categories.map(cat => (
@@ -159,8 +183,8 @@ export default function ExpensesPage() {
                     <td colSpan={5} className="py-8 px-4"><div className="h-8 bg-background rounded-lg w-full"></div></td>
                   </tr>
                 ))
-              ) : filteredExpenses.length > 0 ? (
-                filteredExpenses.map((expense) => (
+              ) : expenses.length > 0 ? (
+                expenses.map((expense) => (
                   <ExpenseRow
                     key={expense.id}
                     id={expense.id}
@@ -190,16 +214,27 @@ export default function ExpensesPage() {
           </table>
         </div>
         
-        {!loading && filteredExpenses.length > 0 && (
+        {!loading && expenses.length > 0 && (
           <div className="p-4 border-t border-border flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{filteredExpenses.length}</span> transactions
+              Showing <span className="font-semibold text-foreground">{(page - 1) * pageSize + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * pageSize, totalItems)}</span> of <span className="font-semibold text-foreground">{totalItems}</span> transactions
             </p>
             <div className="flex items-center space-x-2">
-              <button className="p-2 border border-border rounded-lg hover:bg-background disabled:opacity-50 transition-colors" disabled>
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-2 border border-border rounded-lg hover:bg-background disabled:opacity-50 transition-colors"
+              >
                 <ChevronLeft size={18} />
               </button>
-              <button className="p-2 border border-border rounded-lg hover:bg-background disabled:opacity-50 transition-colors" disabled>
+              <div className="text-sm font-medium">
+                Page {page} of {totalPages}
+              </div>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-2 border border-border rounded-lg hover:bg-background disabled:opacity-50 transition-colors"
+              >
                 <ChevronRight size={18} />
               </button>
             </div>

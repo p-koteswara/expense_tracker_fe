@@ -112,15 +112,24 @@ export default function ChatBubble() {
     setPendingExpense(null);
 
     try {
-      const response = await sendChatMessage(content);
+      const [response, loadedCategories] = await Promise.all([
+        sendChatMessage(content),
+        fetchCategories()
+      ]);
       const data = response.data || {};
 
       if (data.action === 'add_expense') {
+        const matchedCategory = loadedCategories.find(
+          (cat) => String(cat.name).toLowerCase() === String(data.category).toLowerCase()
+        );
+
         const candidate = {
           amount: Number(data.amount),
           description: data.description || 'New expense',
-          category: toTitle(data.category || 'Other'),
+          category: matchedCategory ? matchedCategory.name : (data.category || ''),
+          categoryId: matchedCategory ? matchedCategory.id : null,
           date: normalizeDate(data.date),
+          isInvalidCategory: !matchedCategory
         };
         setPendingExpense(candidate);
         setMessages((prev) => [
@@ -158,33 +167,14 @@ export default function ChatBubble() {
   };
 
   const handleConfirmExpense = async () => {
-    if (!pendingExpense) return;
+    if (!pendingExpense || !pendingExpense.categoryId) return;
 
     setIsTyping(true);
     try {
-      const loadedCategories = await fetchCategories();
-      const matchedCategory = loadedCategories.find(
-        (cat) => String(cat.name).toLowerCase() === String(pendingExpense.category).toLowerCase()
-      );
-
-      if (!matchedCategory) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: 'ai',
-            type: 'text',
-            text: `I could not find the "${pendingExpense.category}" category. Please add it first or try again with another category.`,
-          },
-        ]);
-        setPendingExpense(null);
-        return;
-      }
-
       await axiosInstance.post('/expenses', {
         description: pendingExpense.description,
         amount: pendingExpense.amount,
-        category_id: matchedCategory.id,
+        category_id: pendingExpense.categoryId,
         date: pendingExpense.date,
         note: 'Added via Cashually AI',
       });
@@ -246,20 +236,56 @@ export default function ChatBubble() {
                 {message.type === 'confirm_expense' ? (
                   <div className="max-w-[90%] rounded-xl border border-border bg-surface p-4 text-sm text-foreground shadow-sm">
                     <p className="font-semibold text-base">Got it! Add this expense?</p>
-                    <p className="mt-2 text-sm">
-                      <span className="mr-1">📝</span>${message.expense.amount} - {message.expense.description} -{' '}
-                      {message.expense.category} - {message.expense.date}
-                    </p>
+                    <div className="mt-2 space-y-2">
+                      <p className="text-sm">
+                        <span className="mr-1">📝</span>${message.expense.amount} - {message.expense.description}
+                      </p>
+                      
+                      {message.expense.isInvalidCategory ? (
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground font-medium">Select a category:</p>
+                          <select 
+                            className="w-full p-2 bg-background border border-border rounded-lg text-xs focus:ring-1 focus:ring-accent-green"
+                            value={pendingExpense?.categoryId || ''}
+                            onChange={(e) => {
+                              const catId = parseInt(e.target.value);
+                              const cat = categories.find(c => c.id === catId);
+                              setPendingExpense(prev => ({
+                                ...prev,
+                                categoryId: catId,
+                                category: cat ? cat.name : '',
+                                isInvalidCategory: false
+                              }));
+                            }}
+                          >
+                            <option value="" disabled>-- Select Category --</option>
+                            {categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Category: <span className="font-medium text-foreground">{message.expense.category}</span>
+                        </p>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground italic">
+                        Date: {message.expense.date}
+                      </p>
+                    </div>
+                    
                     <div className="mt-4 flex gap-2">
                       <button
                         onClick={handleConfirmExpense}
-                        className="rounded-lg bg-accent-green px-4 py-2 text-xs font-bold text-white hover:opacity-90"
+                        disabled={!pendingExpense?.categoryId}
+                        className="flex-1 rounded-lg bg-accent-green px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Confirm
                       </button>
                       <button
                         onClick={handleCancelExpense}
-                        className="rounded-lg border border-border px-4 py-2 text-xs font-bold text-muted-foreground hover:bg-background"
+                        className="flex-1 rounded-lg border border-border px-4 py-2 text-xs font-bold text-muted-foreground hover:bg-background"
                       >
                         Cancel
                       </button>

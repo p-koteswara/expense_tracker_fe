@@ -53,12 +53,12 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const [expensesRes, budgetsRes, summaryRes] = await Promise.all([
-        axiosInstance.get<Expense[]>('/expenses?limit=5'),
+        axiosInstance.get('/expenses?size=5'),
         axiosInstance.get<Budget[]>('/budgets'),
         axiosInstance.get<ExpenseSummary>('/expenses/summary'),
       ]);
 
-      setExpenses(expensesRes.data);
+      setExpenses(expensesRes.data.items);
       setBudgets(budgetsRes.data);
 
       // Calculate stats
