@@ -32,21 +32,21 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const { user, logout } = useAuth();
 
   return (
-    <aside className={`w-64 h-screen sidebar flex flex-col fixed left-0 top-0 transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full shadow-none'}`}>
-      <div className="p-8 flex items-center justify-between">
-        <Link href="/" className="text-3xl font-serif font-bold text-accent-green tracking-tight">
+    <aside className={`w-64 h-screen sidebar flex flex-col fixed left-0 top-0 transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}`}>
+      <div className="p-6 md:p-8 flex items-center justify-between">
+        <Link href="/" className="text-2xl md:text-3xl font-serif font-bold text-accent-green tracking-tight">
           Cashually
         </Link>
         <button 
           onClick={() => setIsOpen(false)}
-          className="p-1 hover:bg-white/10 rounded-lg text-muted-foreground transition-colors"
+          className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground transition-colors md:hidden"
           title="Close Sidebar"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={24} />
         </button>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4">
+      <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           const Icon = link.icon;
